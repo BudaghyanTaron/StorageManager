@@ -49,5 +49,6 @@ module.exports = {
     delay,
     deployContract,
     deployProxyContract,
+    upgradeContract,
     verifyContract
 };

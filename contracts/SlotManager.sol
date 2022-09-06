@@ -28,15 +28,7 @@ contract SlotManager is OwnableUpgradeable {
     validSlot(_slotNumber, _lastSlotNumber)
     {
         require(!_unmovable(_slotNumber), "ProxyContract: Variable can not be added inplace of unmovable one");
-        uint256 currentSlot = _lastSlotNumber + 1;
-        uint256 nextSwapSlot = currentSlot;
-        while(currentSlot != _slotNumber) {
-            nextSwapSlot--;
-            if(!_unmovable(nextSwapSlot)){
-                _swapValues(currentSlot , nextSwapSlot);
-                currentSlot = nextSwapSlot;
-            }
-        }
+        _moveSlotTo(int256(_lastSlotNumber + 1), int256(_slotNumber));
     }
 
     function removeVariableAtSlot(
@@ -46,16 +38,19 @@ contract SlotManager is OwnableUpgradeable {
     external 
     validSlot(_slotNumber, _lastSlotNumber)
     {
-        uint256 currentSlot = _slotNumber;
-        uint256 nextSwapSlot = _slotNumber + 1;
-        while(currentSlot != _lastSlotNumber) {
-            if(!_unmovable(nextSwapSlot)){
-                _swapValues(currentSlot, nextSwapSlot);
-                currentSlot = nextSwapSlot;
-            }
-            nextSwapSlot++;
-        }
+        _moveSlotTo(int256(_slotNumber), int256(_lastSlotNumber));
         _resetSlot(_lastSlotNumber);
+    }
+
+    function moveVariableToSlot(
+        uint256 _currentSlotNumber,
+        uint256 _newSlotNumber
+    )
+    external
+    {   
+        require(!_unmovable(_currentSlotNumber), "SlotManager: You can not move this variable");
+        require(!_unmovable(_newSlotNumber), "SlotManager: You can not move to this variable's slot");
+        _moveSlotTo(int256(_currentSlotNumber), int256(_newSlotNumber));
     }
 
     function updateSlotMovability(uint256 _slotNumber, bool _isUnmovable) external {
@@ -72,6 +67,19 @@ contract SlotManager is OwnableUpgradeable {
 
     function getFirstElementRealSlot() external pure returns(uint256) {
         return _firstSlot();
+    }
+
+    function _moveSlotTo(int256 _currentSlot, int256 _newSlot) private {
+        int256 step = _currentSlot < _newSlot ? int256(1) : -1;
+        int256 currentSlot = _currentSlot;
+        int256 nextSwapSlot = _currentSlot + step;
+        while(currentSlot != _newSlot) {
+            if(!_unmovable(uint256(nextSwapSlot))){
+                _swapValues(uint256(currentSlot), uint256(nextSwapSlot));
+                currentSlot = nextSwapSlot;
+            }
+            nextSwapSlot += step;
+        }
     }
 
     function _swapValues(uint256 _slot1, uint256 _slot2) private {
